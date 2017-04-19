@@ -1,4 +1,6 @@
-import {parse, expect, describe, serializeAttributes} from '../utils';
+import {expect, describe} from '../utils';
+import {parse} from '../parse';
+import {serializeAttributes} from '../serialize';
 
 export default function gatherCommonAttributes(el: Element): Element {
   if (typeof el === 'string') return el;

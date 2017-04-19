@@ -1,6 +1,8 @@
 import * as ltx from 'ltx';
 import * as chai from 'chai';
 import {trimText} from './plugins';
+import {parse} from './parse';
+import {serialize} from './serialize';
 
 declare global {
   interface Element {
@@ -12,30 +14,31 @@ declare global {
   }
 
   type Attributes = {[name: string]: string | number};
-}
 
-export function serializeAttributes(attrs: Attributes): string[] {
-  return Object.keys(attrs).map(k => {
-    return typeof attrs[k] === 'number' ? `${k}={${attrs[k]}}` : `${k}=${JSON.stringify(attrs[k])}`;
-  });
-}
-
-export function parse(svgString: string): Element {
-  return ltx.parse(svgString) as Element
-}
-
-export function serialize(el: Element, indent: string = ''): string {
-  const attrStrings = serializeAttributes(el.attrs);
-  const attrs = attrStrings.length > 0 ? ' ' + attrStrings.join(' ') : '';
-  if (el.children.length === 0) {
-    return `${indent}<${el.name}${attrs} />`;
-  } else {
-    return [
-      `${indent}<${el.name}${attrs}>`,
-      ...el.children.map(child => typeof child === 'string' ? (indent + '  ' + child) : serialize(child, indent + '  ')),
-      `${indent}</${el.name}>`,
-    ].join('\n');
-  }
+  type Segment = {
+    type: 'M' | 'm' | 'L' | 'l',
+    x: number,
+    y: number,
+  } | {
+    type: 'C' | 'c',
+    c1x: number,
+    c1y: number,
+    c2x: number,
+    c2y: number,
+    x: number,
+    y: number,
+  } | {
+    type: 'A',
+    rx: number,
+    ry: number,
+    xAxisRotate: number,
+    largeArcFlag: number,
+    sweepFlag: number,
+    x: number,
+    y: number,
+  } | {
+    type: 'Z',
+  };
 }
 
 export function cleanup(el: Element): Element {

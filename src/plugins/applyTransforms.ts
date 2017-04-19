@@ -1,4 +1,6 @@
 import {expect, describe} from '../utils';
+import {parseD} from '../parse';
+import {serializeD} from '../serialize';
 
 type Vector = [number, number, number];
 type Matrix = [number, number, number, number, number, number, number, number, number];
@@ -60,18 +62,34 @@ function parseTransform(transform: string): [Matrix, string] {
 }
 
 function applyMatrixToD(matrix: Matrix, d: string): string {
-  return d.split(' ').map(point => {
-    const match = /^([A-Z]?)([-0-9e.]+),([-0-9e.]+)$/i.exec(point);
-    if (!match) {
-      if (point === 'Z') return point;
-      console.warn(`Error parsing point: ${point}`);
-      return point;
+  const segments = parseD(d);
+  for (let segment of segments) {
+    switch (segment.type) {
+      case 'M':
+      case 'm':
+      case 'L':
+      case 'l':
+        const [nx, ny] = multiplyVector(matrix, [segment.x, segment.y, 1]);
+        segment.x = nx;
+        segment.y = ny;
+        break;
+      case 'C':
+      case 'c':
+        const [c1x, c1y] = multiplyVector(matrix, [segment.c1x, segment.c1y, 1]);
+        const [c2x, c2y] = multiplyVector(matrix, [segment.c2x, segment.c2y, 1]);
+        const [cx, cy] = multiplyVector(matrix, [segment.x, segment.y, 1]);
+        segment.c1x = c1x;
+        segment.c1y = c1y;
+        segment.c2x = c2x;
+        segment.c2y = c2y;
+        segment.x = cx;
+        segment.y = cy;
+        break;
+      default:
+        console.warn(`Segment transform not implemented: ${segment.type}`)
     }
-    const [, letter, x, y] = match;
-    const vector: Vector = [parseFloat(x), parseFloat(y), 1];
-    const [nx, ny] = multiplyVector(matrix, vector);
-    return `${letter}${parseFloat(nx.toFixed(3))},${parseFloat(ny.toFixed(3))}`;
-  }).join(' ');
+  }
+  return serializeD(segments);
 }
 
 function applyMatrixToPoints(matrix: Matrix, points: string): string {
@@ -185,6 +203,30 @@ describe('applyTransforms', () => {
       applyTransforms,
       `<rect x="0" y="0" width="10" height="10" transform="rotate(45)" />`,
       `<rect x="0" y="0" width="10" height="10" transform="rotate(45)" />`,
+    );
+  });
+  
+  it('should mix simple transforms with complex ones', () => {
+    expect(
+      applyTransforms,
+      `<rect x="0" y="0" width="10" height="10" transform="translate(20, 20) rotate(45) scale(2, 2)" />`,
+      `<rect x="20" y="20" width="20" height="20" transform="rotate(45)" />`,
+    );
+  });
+
+  it('should translate circles', () => {
+    expect(
+      applyTransforms,
+      `<circle cx="0" cy="0" r="10" transform="translate(10, 10)" />`,
+      `<circle cx="10" cy="10" r="10" />`,
+    );
+  });
+
+  it('should scale circles', () => {
+    expect(
+      applyTransforms,
+      `<circle cx="0" cy="0" r="10" transform="scale(2, 2)" />`,
+      `<circle cx="0" cy="0" r="20" />`,
     );
   });
 
