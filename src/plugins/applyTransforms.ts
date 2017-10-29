@@ -85,6 +85,8 @@ function applyMatrixToD(matrix: Matrix, d: string): string {
         segment.x = cx;
         segment.y = cy;
         break;
+      case 'Z':
+        break;
       default:
         console.warn(`Segment transform not implemented: ${segment.type}`);
     }
