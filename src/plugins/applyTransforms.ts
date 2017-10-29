@@ -138,15 +138,15 @@ function hasRotation(matrix: Matrix): boolean {
 }
 */
 
-function convertRectToPolyline(el: Element) {
+function convertRectToPolygon(el: Element) {
   // Punt on rects with corner radii
   if (el.attrs['rx']) return;
-  el.name = 'polyline';
+  el.name = 'polygon';
   const x = parseFloat(el.attrs['x'] as string);
   const y = parseFloat(el.attrs['y'] as string);
   const width = parseFloat(el.attrs['width'] as string);
   const height = parseFloat(el.attrs['height'] as string);
-  const points = [x, y, x + width, y, x + width, y + height, x, y + height, x, y];
+  const points = [x, y, x + width, y, x + width, y + height, x, y + height];
   el.attrs['points'] = points.map(formatNumber).join(' ');
   delete el.attrs['x'];
   delete el.attrs['y'];
@@ -154,14 +154,19 @@ function convertRectToPolyline(el: Element) {
   delete el.attrs['height'];
 }
 
-function convertPolylineToRect(el: Element) {
-  const [x0, y0, x1, y1, x2, y2, x3, y3, x4, y4] = (el.attrs['points'] as string).split(' ').map(parseFloat);
+function convertPolygonToRect(el: Element) {
+  const [x0, y0, x1, y1, x2, y2, x3, y3, ...rest] = (el.attrs['points'] as string).split(' ').map(parseFloat);
+  if (rest.length > 0) {
+    if (rest.length !== 2) return;
+    const [x4, y4] = rest;
+    if (x0 !== x4 || y0 !== y4) return;
+  }
   let width = 0;
   let height = 0;
-  if (y0 === y1 && x1 === x2 && y2 === y3 && x3 === x0 && x4 === x0 && y4 === y0) {
+  if (y0 === y1 && x1 === x2 && y2 === y3 && x3 === x0) {
     width = Math.abs(x1 - x0);
     height = Math.abs(y2 - y1);
-  } else if (x0 === x1 && y1 === y2 && x2 === x3 && y3 === y0 && x4 === x0 && y4 === y0) {
+  } else if (x0 === x1 && y1 === y2 && x2 === x3 && y3 === y0) {
     width = Math.abs(x2 - x1);
     height = Math.abs(y1 - y0);
   } else {
@@ -177,10 +182,15 @@ function convertPolylineToRect(el: Element) {
 
 const transformsByElement = {
   rect(el: Element, matrix: Matrix) {
-    convertRectToPolyline(el);
-    if (el.name !== 'polyline') return false;
-    transformsByElement.polyline(el, matrix);
-    convertPolylineToRect(el);
+    convertRectToPolygon(el);
+    if (el.name !== 'polygon') return false;
+    transformsByElement.polygon(el, matrix);
+    convertPolygonToRect(el);
+    return true;
+  },
+
+  polygon(el: Element, matrix: Matrix) {
+    el.attrs['points'] = applyMatrixToPoints(matrix, el.attrs['points'] as string);
     return true;
   },
 
@@ -253,7 +263,7 @@ describe('applyTransforms', () => {
     expect(
       applyTransforms,
       `<rect x="0" y="0" width="10" height="10" transform="rotate(45)" />`,
-      `<polyline points="0 0 7.071 7.071 0 14.142 -7.071 7.071 0 0" />`,
+      `<polygon points="0 0 7.071 7.071 0 14.142 -7.071 7.071" />`,
     );
   });
 
@@ -261,7 +271,7 @@ describe('applyTransforms', () => {
     expect(
       applyTransforms,
       `<rect x="0" y="0" width="10" height="10" transform="translate(20, 20) rotate(45) scale(2, 2)" />`,
-      `<polyline points="20 20 34.142 34.142 20 48.284 5.858 34.142 20 20" />`,
+      `<polygon points="20 20 34.142 34.142 20 48.284 5.858 34.142" />`,
     );
   });
 
@@ -278,6 +288,14 @@ describe('applyTransforms', () => {
       applyTransforms,
       `<circle cx="0" cy="0" r="10" transform="scale(2, 2)" />`,
       `<circle cx="0" cy="0" r="20" />`,
+    );
+  });
+
+  it('should translate polygons', () => {
+    expect(
+      applyTransforms,
+      `<polygon points="0 0 10 20" transform="translate(10, 10)" />`,
+      `<polygon points="10 10 20 30" />`,
     );
   });
 
