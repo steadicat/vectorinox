@@ -108,18 +108,6 @@ function applyMatrixToPoints(matrix: Matrix, points: string): string {
   return newPoints.join(' ');
 }
 
-function applyMatrixToR(matrix: Matrix, r: string): string {
-  const [cx, cy] = multiplyVector(matrix, [0, 0, 1]);
-  const [drx] = multiplyVector(matrix, [parseFloat(r), 0, 1]);
-  const [, dry] = multiplyVector(matrix, [0, parseFloat(r), 1]);
-  const rx = drx - cx;
-  const ry = dry - cy;
-  if (rx !== ry) {
-    console.warn('Circle transformed into an ellipsis... not implemeted yet.');
-  }
-  return formatNumber(rx);
-}
-
 function applyMatrixToX(matrix: Matrix, x: string): string {
   const vector: Vector = [parseFloat(x), 0, 1];
   const [nx] = multiplyVector(matrix, vector);
@@ -132,11 +120,34 @@ function applyMatrixToY(matrix: Matrix, y: string): string {
   return formatNumber(ny);
 }
 
-/*
+function applyMatrixToWidth(matrix: Matrix, width: string): string {
+  const [cx] = multiplyVector(matrix, [0, 0, 1]);
+  const [dx] = multiplyVector(matrix, [parseFloat(width), 0, 1]);
+  return formatNumber(dx - cx);
+}
+
+function applyMatrixToHeight(matrix: Matrix, height: string): string {
+  const [, cy] = multiplyVector(matrix, [0, 0, 1]);
+  const [, dy] = multiplyVector(matrix, [0, parseFloat(height), 1]);
+  return formatNumber(dy - cy);
+}
+
+function applyMatrixToR(matrix: Matrix, r: string): string {
+  const rx = applyMatrixToWidth(matrix, r);
+  const ry = applyMatrixToHeight(matrix, r);
+  if (rx !== ry) {
+    console.warn('Circle transformed into an ellipsis... not implemeted yet.');
+  }
+  return rx;
+}
+
 function hasRotation(matrix: Matrix): boolean {
   return matrix[1] !== 0 || matrix[3] !== 0;
 }
-*/
+
+function hasScale(matrix: Matrix): boolean {
+  return matrix[0] !== 1 || matrix[4] !== 1;
+}
 
 function convertRectToPolygon(el: Element) {
   // Punt on rects with corner radii
@@ -182,11 +193,19 @@ function convertPolygonToRect(el: Element) {
 
 const transformsByElement = {
   rect(el: Element, matrix: Matrix) {
-    convertRectToPolygon(el);
-    if (el.name !== 'polygon') return false;
-    transformsByElement.polygon(el, matrix);
-    convertPolygonToRect(el);
-    return true;
+    if (hasRotation(matrix) || hasScale(matrix)) {
+      convertRectToPolygon(el);
+      if (el.name !== 'polygon') return false;
+      transformsByElement.polygon(el, matrix);
+      convertPolygonToRect(el);
+      return true;
+    } else {
+      el.attrs['x'] = applyMatrixToX(matrix, el.attrs['x'] as string);
+      el.attrs['y'] = applyMatrixToY(matrix, el.attrs['y'] as string);
+      el.attrs['width'] = applyMatrixToWidth(matrix, el.attrs['width'] as string);
+      el.attrs['height'] = applyMatrixToHeight(matrix, el.attrs['height'] as string);
+      return true;
+    }
   },
 
   polygon(el: Element, matrix: Matrix) {
@@ -337,6 +356,14 @@ describe('applyTransforms', () => {
       `<rect transform="rotate(-45.000000)" x="50.7071068" y="39.2218254" width="4"
       height="14.9705627" rx="2"></rect>`,
       `<rect transform="rotate(-45.000000)" x="50.7071068" y="39.2218254" width="4" height="14.9705627" rx="2" />`,
+    );
+  });
+
+  it('should apply translates to rects with radii', () => {
+    expect(
+      applyTransforms,
+      `<rect x="1" y="9" width="20" height="12" rx="1" transform="translate(-484.000000, -576.000000) translate(460.000000, 360.000000) translate(24.000000, 215.000000) translate(1.000000, 1.000000)" />`,
+      `<rect x="2" y="9" width="20" height="12" rx="1" />`,
     );
   });
 
