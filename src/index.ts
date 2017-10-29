@@ -5,7 +5,7 @@ import {serialize} from './serialize';
 
 const processors = [
   plugins.trimText,
-  plugins.removeSvgAttributes('xmlns', 'xmlns:xlink', 'version'),
+  plugins.removeSvgAttributes('xmlns:xlink', 'version'),
   plugins.removeTags('desc', 'title', 'defs'),
   plugins.moveGroupAttributesDown,
   plugins.removeEmptyGroups,
@@ -14,7 +14,11 @@ const processors = [
   plugins.gatherCommonAttributes,
 ];
 
-const jsxProcessors = [plugins.camelCaseAttributes, plugins.numberValues];
+const jsxProcessors = [
+  plugins.removeSvgAttributes('xmlns'),
+  plugins.camelCaseAttributes,
+  plugins.numberValues,
+];
 
 export function clean(svgString: string): string {
   let svg = parse(svgString);

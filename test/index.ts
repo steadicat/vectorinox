@@ -27,7 +27,7 @@ describe('Clean plain SVG', () => {
     </g>
 </svg>`);
     expect(cleaned).to
-      .equal(`<svg width="48px" height="48px" viewBox="0 0 48 48" stroke="#444444" stroke-width="2" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      .equal(`<svg width="48px" height="48px" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" stroke="#444444" stroke-width="2" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round" fill="none">
   <path fill="#FFFFFF" d="M7,2 C10.314,2 13,4.5 13,8 C13,9 12.836,10.009 13,10.5 C13.5,12 15,12.5 16,13 C17,13.5 44.5,25 44.5,25 C43,28.5 40.5,27.5 39,27 C36,26 21.248,20.035 20,19.5 C16.5,18 17,16.5 15,15.5 C11.12,13.796 15,15.5 11.12,13.796 C10.379,13.471 8.122,14 7,14 C3.686,14 1,11.314 1,8 C1,4.686 3.686,2 7,2 Z" />
   <circle cx="7" cy="8" r="3" />
   <rect fill="#FFD0D8" stroke-dasharray="4,4" x="22" y="18" width="25" height="26" rx="2" />
@@ -58,7 +58,7 @@ describe('Clean plain SVG', () => {
     </g>
 </svg>`);
     expect(cleaned).to
-      .equal(`<svg width="40px" height="40px" viewBox="0 0 40 40" stroke="#FD245C" stroke-width="2" fill-rule="evenodd" stroke-linejoin="round" fill="none" stroke-linecap="round">
+      .equal(`<svg width="40px" height="40px" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" stroke="#FD245C" stroke-width="2" fill-rule="evenodd" stroke-linejoin="round" fill="none" stroke-linecap="round">
   <circle fill="#FFFFFF" stroke-linecap="square" cx="20" cy="20" r="18" />
   <path d="M15,15 L25,25" />
   <path d="M15,25 L25,15" />
