@@ -6,6 +6,7 @@ import {serialize} from './serialize';
 const processors = [
   plugins.trimText,
   plugins.removeSvgAttributes('xmlns:xlink', 'version'),
+  plugins.inlineDefinitions,
   plugins.removeTags('desc', 'title', 'defs'),
   plugins.moveGroupAttributesDown,
   plugins.removeEmptyGroups,
