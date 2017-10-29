@@ -1,6 +1,8 @@
 import {expect, describe} from '../utils';
 import {serializeAttributes} from '../serialize';
 
+const BLACKLIST = /^(x|y|width|height|points|d|cx|cy|r|rx|transform)=/;
+
 export default function gatherCommonAttributes(el: Element): Element {
   if (typeof el === 'string') return el;
   const childElements = el.children.filter(el => typeof el !== 'string') as Element[];
@@ -8,13 +10,12 @@ export default function gatherCommonAttributes(el: Element): Element {
     const attrs: {[name: string]: number} = {};
     for (let child of childElements) {
       for (let attr of serializeAttributes(child.attrs || {})) {
+        if (BLACKLIST.test(attr)) continue;
         if (!attrs[attr]) attrs[attr] = 0;
         attrs[attr]++;
       }
     }
-    const attrsToHoist = Object.keys(attrs).filter(
-      k => !/^transform/.test(k) && attrs[k] > 1 && attrs[k] >= childElements.length / 2,
-    );
+    const attrsToHoist = Object.keys(attrs).filter(k => attrs[k] > 1 && attrs[k] >= childElements.length / 2);
     for (let attr of attrsToHoist) {
       const [name, value] = attr.split('=');
       el.attrs[name] = value.substring(1, value.length - 1);
