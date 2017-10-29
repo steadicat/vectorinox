@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "noImplicitAny": true
+    "noImplicitAny": true,
+    "lib": ["es2017"],
+    "outDir": "dist"
   },
-  "include": [
-    "src/**/*.ts"
-  ]
+  "include": ["src/**/*.ts"]
 }
