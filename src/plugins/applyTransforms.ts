@@ -1,4 +1,4 @@
-import {expect, describe} from '../utils';
+import {expect, describe, formatNumber} from '../utils';
 import {parseD} from '../parse';
 import {serializeD} from '../serialize';
 
@@ -32,7 +32,7 @@ function parseTransform(transform: string): [Matrix, string] {
   let match;
   const re = /(\w+)\(([-0-9e.]+\s*(,\s*[-0-9e.]+)*)\)/g;
   const remainingTransforms = [];
-  while (match = re.exec(transform)) {
+  while ((match = re.exec(transform))) {
     const [, op, paramsString] = match;
     const params = paramsString.split(',').map(parseFloat);
     let m: Matrix;
@@ -86,7 +86,7 @@ function applyMatrixToD(matrix: Matrix, d: string): string {
         segment.y = cy;
         break;
       default:
-        console.warn(`Segment transform not implemented: ${segment.type}`)
+        console.warn(`Segment transform not implemented: ${segment.type}`);
     }
   }
   return serializeD(segments);
@@ -100,71 +100,120 @@ function applyMatrixToPoints(matrix: Matrix, points: string): string {
     const y = parseFloat(p[i + 1]);
     const vector: Vector = [x, y, 1];
     const [nx, ny] = multiplyVector(matrix, vector);
-    newPoints.push(parseFloat(nx.toFixed(3)));
-    newPoints.push(parseFloat(ny.toFixed(3)));
+    newPoints.push(formatNumber(nx));
+    newPoints.push(formatNumber(ny));
   }
   return newPoints.join(' ');
 }
 
 function applyMatrixToR(matrix: Matrix, r: string): string {
-  const vector: Vector = [parseFloat(r), parseFloat(r), 1];
-  const [rx, ry] = multiplyVector(matrix, vector);
+  const [cx, cy] = multiplyVector(matrix, [0, 0, 1]);
+  const [drx] = multiplyVector(matrix, [parseFloat(r), 0, 1]);
+  const [, dry] = multiplyVector(matrix, [0, parseFloat(r), 1]);
+  const rx = drx - cx;
+  const ry = dry - cy;
   if (rx !== ry) {
-    console.warn('Circle transformed into an ellipsis... not implemeted yet.')
+    console.warn('Circle transformed into an ellipsis... not implemeted yet.');
   }
-  return `${parseFloat(rx.toFixed(3))}`;
+  return formatNumber(rx);
 }
+
 function applyMatrixToX(matrix: Matrix, x: string): string {
   const vector: Vector = [parseFloat(x), 0, 1];
-  const [nx,] = multiplyVector(matrix, vector);
-  return `${parseFloat(nx.toFixed(3))}`;
+  const [nx] = multiplyVector(matrix, vector);
+  return formatNumber(nx);
 }
 
 function applyMatrixToY(matrix: Matrix, y: string): string {
   const vector: Vector = [0, parseFloat(y), 1];
   const [, ny] = multiplyVector(matrix, vector);
-  return `${parseFloat(ny.toFixed(3))}`;
+  return formatNumber(ny);
 }
 
 /*
 function hasRotation(matrix: Matrix): boolean {
   return matrix[1] !== 0 || matrix[3] !== 0;
 }
-
-function convertRectToPolyline(rect: Element): Element {
-  rect.name = 'polyline';
-  const x = parseFloat(rect.attrs['x'] as string);
-  const y = parseFloat(rect.attrs['y'] as string);
-  const width = parseFloat(rect.attrs['width'] as string);
-  const height = parseFloat(rect.attrs['height'] as string);
-  const points = [
-    x, y,
-    x + width, y,
-    x + width, y + width,
-    x, y + width,
-    x, y,
-  ];
-  rect.attrs['points'] = points.map(p => parseFloat(p.toFixed(3))).join(' ');
-  delete rect.attrs['x'];
-  delete rect.attrs['y'];
-  delete rect.attrs['width'];
-  delete rect.attrs['height'];
-  return rect;
-}
 */
 
-export default function applyTransforms(el:  Element): Element {
+function convertRectToPolyline(el: Element) {
+  // Punt on rects with corner radii
+  if (el.attrs['rx']) return;
+  el.name = 'polyline';
+  const x = parseFloat(el.attrs['x'] as string);
+  const y = parseFloat(el.attrs['y'] as string);
+  const width = parseFloat(el.attrs['width'] as string);
+  const height = parseFloat(el.attrs['height'] as string);
+  const points = [x, y, x + width, y, x + width, y + height, x, y + height, x, y];
+  el.attrs['points'] = points.map(formatNumber).join(' ');
+  delete el.attrs['x'];
+  delete el.attrs['y'];
+  delete el.attrs['width'];
+  delete el.attrs['height'];
+}
+
+function convertPolylineToRect(el: Element) {
+  const [x0, y0, x1, y1, x2, y2, x3, y3, x4, y4] = (el.attrs['points'] as string).split(' ').map(parseFloat);
+  let width = 0;
+  let height = 0;
+  if (y0 === y1 && x1 === x2 && y2 === y3 && x3 === x0 && x4 === x0 && y4 === y0) {
+    width = Math.abs(x1 - x0);
+    height = Math.abs(y2 - y1);
+  } else if (x0 === x1 && y1 === y2 && x2 === x3 && y3 === y0 && x4 === x0 && y4 === y0) {
+    width = Math.abs(x2 - x1);
+    height = Math.abs(y1 - y0);
+  } else {
+    return;
+  }
+  el.name = 'rect';
+  el.attrs['x'] = formatNumber(Math.min(x0, x1, x2, x3));
+  el.attrs['y'] = formatNumber(Math.min(y0, y1, y2, y3));
+  el.attrs['width'] = formatNumber(width);
+  el.attrs['height'] = formatNumber(height);
+  delete el.attrs['points'];
+}
+
+const transformsByElement = {
+  rect(el: Element, matrix: Matrix) {
+    convertRectToPolyline(el);
+    if (el.name !== 'polyline') return false;
+    transformsByElement.polyline(el, matrix);
+    convertPolylineToRect(el);
+    return true;
+  },
+
+  polyline(el: Element, matrix: Matrix) {
+    el.attrs['points'] = applyMatrixToPoints(matrix, el.attrs['points'] as string);
+    return true;
+  },
+
+  path(el: Element, matrix: Matrix) {
+    el.attrs['d'] = applyMatrixToD(matrix, el.attrs['d'] as string);
+    return true;
+  },
+
+  circle(el: Element, matrix: Matrix) {
+    el.attrs['cx'] = applyMatrixToX(matrix, el.attrs['cx'] as string);
+    el.attrs['cy'] = applyMatrixToY(matrix, el.attrs['cy'] as string);
+    el.attrs['r'] = applyMatrixToR(matrix, el.attrs['r'] as string);
+    return true;
+  },
+};
+
+// if (el.attrs['x']) el.attrs['x'] = applyMatrixToX(matrix, el.attrs['x'] as string);
+// if (el.attrs['y']) el.attrs['y'] = applyMatrixToY(matrix, el.attrs['y'] as string);
+
+export default function applyTransforms(el: Element): Element {
   if (el.attrs['transform']) {
     const [matrix] = parseTransform(el.attrs['transform'] as string);
     if (matrix) {
-      if (el.attrs['d']) el.attrs['d'] = applyMatrixToD(matrix, el.attrs['d'] as string);
-      //if (el.attrs['r']) el.attrs['r'] = applyMatrixToR(matrix, el.attrs['r'] as string);
-      if (el.attrs['x']) el.attrs['x'] = applyMatrixToX(matrix, el.attrs['x'] as string);
-      if (el.attrs['y']) el.attrs['y'] = applyMatrixToY(matrix, el.attrs['y'] as string);
-      if (el.attrs['cx']) el.attrs['cx'] = applyMatrixToX(matrix, el.attrs['cx'] as string);
-      if (el.attrs['cy']) el.attrs['cy'] = applyMatrixToY(matrix, el.attrs['cy'] as string);
-      if (el.attrs['points']) el.attrs['points'] = applyMatrixToPoints(matrix, el.attrs['points'] as string);
-      delete el.attrs['transform'];
+      const transform = transformsByElement[el.name as keyof typeof transformsByElement];
+      if (transform) {
+        const success = transform(el, matrix);
+        if (success) {
+          delete el.attrs['transform'];
+        }
+      }
     }
   }
   if (el.children) {
@@ -181,7 +230,7 @@ describe('applyTransforms', () => {
       `<rect x="10" y="10" width="10" height="10" />`,
     );
   });
-  
+
   it('should scale rects', () => {
     expect(
       applyTransforms,
@@ -189,28 +238,28 @@ describe('applyTransforms', () => {
       `<rect x="0" y="0" width="20" height="20" />`,
     );
   });
-  
+
   it('should rotate rects 90 degrees', () => {
     expect(
       applyTransforms,
       `<rect x="0" y="0" width="10" height="20" transform="rotate(90)" />`,
-      `<rect x="0" y="0" width="20" height="10" />`,
+      `<rect x="-20" y="0" width="20" height="10" />`,
     );
   });
-  
+
   it('should rotate rects 45 degrees', () => {
     expect(
       applyTransforms,
       `<rect x="0" y="0" width="10" height="10" transform="rotate(45)" />`,
-      `<rect x="0" y="0" width="10" height="10" transform="rotate(45)" />`,
+      `<polyline points="0 0 7.071 7.071 0 14.142 -7.071 7.071 0 0" />`,
     );
   });
-  
+
   it('should mix simple transforms with complex ones', () => {
     expect(
       applyTransforms,
       `<rect x="0" y="0" width="10" height="10" transform="translate(20, 20) rotate(45) scale(2, 2)" />`,
-      `<rect x="20" y="20" width="20" height="20" transform="rotate(45)" />`,
+      `<polyline points="20 20 34.142 34.142 20 48.284 5.858 34.142 20 20" />`,
     );
   });
 
@@ -237,7 +286,7 @@ describe('applyTransforms', () => {
       `<polyline points="10 10 20 30" />`,
     );
   });
-  
+
   it('should scale polylines', () => {
     expect(
       applyTransforms,
@@ -245,7 +294,7 @@ describe('applyTransforms', () => {
       `<polyline points="0 0 20 40" />`,
     );
   });
-  
+
   it('should rotate polylines', () => {
     expect(
       applyTransforms,
@@ -253,7 +302,7 @@ describe('applyTransforms', () => {
       `<polyline points="0 0 0 14.142" />`,
     );
   });
-  
+
   it('should rotate paths', () => {
     expect(
       applyTransforms,
@@ -262,4 +311,21 @@ describe('applyTransforms', () => {
     );
   });
 
+  it('should preserve transforms it cannot handle', () => {
+    expect(
+      applyTransforms,
+      `<rect transform="rotate(-45.000000)" x="50.7071068" y="39.2218254" width="4"
+      height="14.9705627" rx="2"></rect>`,
+      `<rect transform="rotate(-45.000000)" x="50.7071068" y="39.2218254" width="4" height="14.9705627" rx="2" />`,
+    );
+  });
+
+  xit('should support rotations around on a non-zero point', () => {
+    expect(
+      applyTransforms,
+      `<rect transform="translate(52.707107, 46.707107) rotate(-45.000000) translate(-52.707107, -46.707107)" x="50.7071068" y="39.2218254" width="4"
+      height="14.9705627" rx="2"></rect>`,
+      `<rect transform="rotate(-45.000000, 52.707107, 46.707107)" x="50.7071068" y="39.2218254" width="4" height="14.9705627" rx="2" />`,
+    );
+  });
 });

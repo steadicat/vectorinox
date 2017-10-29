@@ -1,12 +1,12 @@
 import * as ltx from 'ltx';
 
-const segmentRe = /([MmLlCcAZ])([^MmLlCcAZ]*)/ig
-const numberRe = /-?[0-9]*\.?[0-9]+(?:e[-+]?\d+)?/ig;
+const segmentRe = /([MmLlCcAZ])([^MmLlCcAZ]*)/gi;
+// const numberRe = /-?[0-9]*\.?[0-9]+(?:e[-+]?\d+)?/ig;
 
 export function parseD(d: string): Segment[] {
   const segments: Segment[] = [];
   let match;
-  while (match = segmentRe.exec(d)) {
+  while ((match = segmentRe.exec(d))) {
     const [, letter, numbersString] = match;
     const numbers = numbersString.split(/[,\s]+/).map(parseFloat);
     switch (letter) {
@@ -38,5 +38,5 @@ export function parseD(d: string): Segment[] {
 }
 
 export function parse(svgString: string): Element {
-  return ltx.parse(svgString) as Element
+  return ltx.parse(svgString) as Element;
 }

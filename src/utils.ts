@@ -1,4 +1,3 @@
-import * as ltx from 'ltx';
 import * as chai from 'chai';
 import {trimText} from './plugins';
 import {parse} from './parse';
@@ -62,3 +61,7 @@ export const describe =
     desc: string,
     f: () => void,
   ) => void) || function() {};
+
+export function formatNumber(n: number, precision = 3): string {
+  return parseFloat(n.toFixed(precision)).toString();
+}

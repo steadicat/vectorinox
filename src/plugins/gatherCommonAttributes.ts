@@ -1,5 +1,4 @@
 import {expect, describe} from '../utils';
-import {parse} from '../parse';
 import {serializeAttributes} from '../serialize';
 
 export default function gatherCommonAttributes(el: Element): Element {
@@ -13,7 +12,9 @@ export default function gatherCommonAttributes(el: Element): Element {
         attrs[attr]++;
       }
     }
-    const attrsToHoist = Object.keys(attrs).filter(k => !/^transform/.test(k) && attrs[k] > 1 && attrs[k] >= childElements.length / 2);
+    const attrsToHoist = Object.keys(attrs).filter(
+      k => !/^transform/.test(k) && attrs[k] > 1 && attrs[k] >= childElements.length / 2,
+    );
     for (let attr of attrsToHoist) {
       const [name, value] = attr.split('=');
       el.attrs[name] = value.substring(1, value.length - 1);
@@ -29,7 +30,7 @@ export default function gatherCommonAttributes(el: Element): Element {
   if (el.children) {
     el.children = el.children.map(gatherCommonAttributes);
   }
-  return el;  
+  return el;
 }
 
 describe('gatherCommonAttributes', () => {

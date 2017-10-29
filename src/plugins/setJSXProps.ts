@@ -43,7 +43,7 @@ describe('setJSXProps', () => {
     expect(
       setJSXProps({}, ['fill', 'stroke'], ['props']),
       `<svg viewBox="0 0 20 20"><rect /></svg>`,
-      `<svg fill={fill} stroke={stroke} {...props}>
+      `<svg viewBox="0 0 20 20" fill={fill} stroke={stroke} {...props}>
   <rect />
 </svg>`,
     );

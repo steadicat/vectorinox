@@ -1,9 +1,7 @@
-import * as ltx from 'ltx';
-import * as path from 'path';
 import * as plugins from './plugins';
 import {cleanup} from './utils';
 import {parse} from './parse';
-import {serialize, serializeAttributes} from './serialize';
+import {serialize} from './serialize';
 
 const processors = [
   plugins.trimText,
