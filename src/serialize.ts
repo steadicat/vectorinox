@@ -1,3 +1,4 @@
+import {InheritedProp, SplicedProp} from './jsx';
 
 function float(n: number): string {
   return `${parseFloat(n.toFixed(3))}`;
@@ -8,26 +9,37 @@ function floatPair(x: number, y: number): string {
 }
 
 export function serializeD(segments: Segment[]): string {
-  return segments.map(segment => {
-    switch (segment.type) {
-      case 'M':
-      case 'm':
-      case 'L':
-      case 'l':
-        return `${segment.type}${float(segment.x)},${parseFloat(float(segment.y))}`;
-      case 'C':
-      case 'c':
-        const {type, c1x, c1y, c2x, c2y, x, y} = segment;
-        return `${type}${floatPair(c1x, c1y)} ${floatPair(c2x, c2y)} ${floatPair(x, y)}`;
-      default:
-        return `${segment.type}`;
-    }
-  }).join(' ');
+  return segments
+    .map(segment => {
+      switch (segment.type) {
+        case 'M':
+        case 'm':
+        case 'L':
+        case 'l':
+          return `${segment.type}${float(segment.x)},${parseFloat(float(segment.y))}`;
+        case 'C':
+        case 'c':
+          const {type, c1x, c1y, c2x, c2y, x, y} = segment;
+          return `${type}${floatPair(c1x, c1y)} ${floatPair(c2x, c2y)} ${floatPair(x, y)}`;
+        default:
+          return `${segment.type}`;
+      }
+    })
+    .join(' ');
 }
 
 export function serializeAttributes(attrs: Attributes): string[] {
-  return Object.keys(attrs).map(k => {
-    return typeof attrs[k] === 'number' ? `${k}={${attrs[k]}}` : `${k}=${JSON.stringify(attrs[k])}`;
+  return Object.keys(attrs).map(name => {
+    const value = attrs[name];
+    if (value instanceof InheritedProp) {
+      return `${value.name}={${value.name}}`;
+    } else if (value instanceof SplicedProp) {
+      return `{...${value.name}}`;
+    } else if (typeof value === 'number') {
+      return `${name}={${value}}`;
+    } else {
+      return `${name}=${JSON.stringify(value)}`;
+    }
   });
 }
 
@@ -39,7 +51,9 @@ export function serialize(el: Element, indent: string = ''): string {
   } else {
     return [
       `${indent}<${el.name}${attrs}>`,
-      ...el.children.map(child => typeof child === 'string' ? (indent + '  ' + child) : serialize(child, indent + '  ')),
+      ...el.children.map(
+        child => (typeof child === 'string' ? indent + '  ' + child : serialize(child, indent + '  ')),
+      ),
       `${indent}</${el.name}>`,
     ].join('\n');
   }

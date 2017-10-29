@@ -16,12 +16,7 @@ const processors = [
   plugins.gatherCommonAttributes,
 ];
 
-const reactProcessors = [
-  ...processors,
-  plugins.changeRootTag('View', {component: 'svg'}),
-  plugins.camelCaseAttributes,
-  plugins.numberValues,
-];
+const jsxProcessors = [plugins.camelCaseAttributes, plugins.numberValues];
 
 export function clean(svgString: string): string {
   let svg = parse(svgString);
@@ -29,8 +24,17 @@ export function clean(svgString: string): string {
   return serialize(svg);
 }
 
-export function cleanReact(svgString: string): string {
+export function cleanJSX(
+  svgString: string,
+  jsxTag = 'svg',
+  jsxProps: Attributes = {},
+  jsxInheritProps: string[] = [],
+  jsxSpliceProps: string[] = [],
+): string {
   let svg = parse(svgString);
-  svg = reactProcessors.reduce((svg, p) => cleanup(p(svg)), svg);
+  svg = processors.reduce((svg, p) => cleanup(p(svg)), svg);
+  svg = jsxProcessors.reduce((svg, p) => cleanup(p(svg)), svg);
+  svg = plugins.changeRootTag(jsxTag, jsxProps)(svg);
+  svg = plugins.setJSXProps(jsxProps, jsxInheritProps, jsxSpliceProps)(svg);
   return serialize(svg);
 }

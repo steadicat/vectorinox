@@ -1,4 +1,4 @@
-import {clean, cleanReact} from '../src/index';
+import {clean, cleanJSX} from '../src/index';
 import {expect} from 'chai';
 
 describe('Clean plain SVG', () => {
@@ -26,7 +26,8 @@ describe('Clean plain SVG', () => {
         </g>
     </g>
 </svg>`);
-    expect(cleaned).to.equal(`<svg width="48px" height="48px" viewBox="0 0 48 48" stroke="#444444" stroke-width="2" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    expect(cleaned).to
+      .equal(`<svg width="48px" height="48px" viewBox="0 0 48 48" stroke="#444444" stroke-width="2" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round" fill="none">
   <path fill="#FFFFFF" d="M7,2 C10.314,2 13,4.5 13,8 C13,9 12.836,10.009 13,10.5 C13.5,12 15,12.5 16,13 C17,13.5 44.5,25 44.5,25 C43,28.5 40.5,27.5 39,27 C36,26 21.248,20.035 20,19.5 C16.5,18 17,16.5 15,15.5 C11.12,13.796 15,15.5 11.12,13.796 C10.379,13.471 8.122,14 7,14 C3.686,14 1,11.314 1,8 C1,4.686 3.686,2 7,2 Z" />
   <circle cx="7" cy="8" r="3" />
   <rect fill="#FFD0D8" stroke-dasharray="4,4" x="22" y="18" width="25" height="26" rx="2" />
@@ -38,7 +39,6 @@ describe('Clean plain SVG', () => {
   <circle stroke="none" stroke-width="1" fill="#444444" cx="20" cy="17" r="1" />
 </svg>`);
   });
-
 
   it('should handle nested transforms', () => {
     const cleaned = clean(`<?xml version="1.0" encoding="UTF-8"?>
@@ -57,7 +57,8 @@ describe('Clean plain SVG', () => {
         </g>
     </g>
 </svg>`);
-    expect(cleaned).to.equal(`<svg width="40px" height="40px" viewBox="0 0 40 40" stroke="#FD245C" stroke-width="2" fill-rule="evenodd" stroke-linejoin="round" fill="none" stroke-linecap="round">
+    expect(cleaned).to
+      .equal(`<svg width="40px" height="40px" viewBox="0 0 40 40" stroke="#FD245C" stroke-width="2" fill-rule="evenodd" stroke-linejoin="round" fill="none" stroke-linecap="round">
   <circle fill="#FFFFFF" stroke-linecap="square" cx="20" cy="20" r="18" />
   <path d="M15,15 L25,25" />
   <path d="M15,25 L25,15" />
@@ -87,7 +88,8 @@ describe('Clean plain SVG', () => {
         </g>
     </g>
 </svg>`);
-    expect(cleaned).to.equal(`<svg width="60px" height="60px" viewBox="0 0 60 60" fill-rule="evenodd" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#444444">
+    expect(cleaned).to
+      .equal(`<svg width="60px" height="60px" viewBox="0 0 60 60" fill-rule="evenodd" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#444444">
   <circle stroke="none" stroke-width="1" fill="#CFE9FF" cx="34.5" cy="27.5" r="13.5" />
   <circle stroke="none" stroke-width="1" fill="#FFFFFF" cx="32.5" cy="25.5" r="11.5" />
   <path stroke="#FFEFC6" d="M17.0892857,29 L3.08928571,29" />
@@ -103,10 +105,10 @@ describe('Clean plain SVG', () => {
   });
 });
 
-
 describe('Clean into React/JSX', () => {
   it('should clean a simple icon into JSX', () => {
-    const cleaned = cleanReact(`<svg width="15px" height="15px" viewBox="0 0 15 15" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    const cleaned = cleanJSX(
+      `<svg width="15px" height="15px" viewBox="0 0 15 15" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
     <!-- Generator: Sketch 43.1 (39012) - http://www.bohemiancoding.com/sketch -->
     <desc>Created with Sketch.</desc>
     <defs></defs>
@@ -122,8 +124,14 @@ describe('Clean into React/JSX', () => {
             <path d="M8.5,9.5 L9.5,9.5" id="Line"></path>
         </g>
     </g>
-</svg>`);
-    expect(cleaned).to.equal(`<View width={15} height={15} viewBox="0 0 15 15" stroke="#000000" strokeWidth={1} fill="none" fillRule="evenodd" strokeLinecap="round" strokeLinejoin="round" component="svg">
+</svg>`,
+      'View',
+      {component: 'svg'},
+      ['stroke'],
+      ['props'],
+    );
+    expect(cleaned).to
+      .equal(`<View width={15} height={15} viewBox="0 0 15 15" stroke={stroke} strokeWidth={1} fill="none" fillRule="evenodd" strokeLinecap="round" strokeLinejoin="round" component="svg" {...props}>
   <path d="M4.5,0.5 L14.5,0.5 L14.5,8.5 L13.5,8.5 L13.5,11.5 L10.5,8.5 L4.5,8.5 L4.5,0.5 Z" />
   <path d="M9.5,10 L9.5,11.5 L4.5,11.5 L1.5,14.5 L1.5,11.5 L0.5,11.5 L0.5,3.5 L3,3.5" />
   <path d="M10.5,2.5 L12.5,2.5" />

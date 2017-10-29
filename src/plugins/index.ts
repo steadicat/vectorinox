@@ -9,3 +9,4 @@ export {default as removeIds} from './removeIds';
 export {default as removeSvgAttributes} from './removeSvgAttributes';
 export {default as removeTags} from './removeTags';
 export {default as trimText} from './trimText';
+export {default as setJSXProps} from './setJSXProps';
