@@ -40,6 +40,7 @@
   },
   "dependencies": {
     "chai": "^4.1.2",
+    "ltx": "^2.7.1",
     "d-path-parser": "^1.0.0"
   },
   "devDependencies": {
@@ -47,7 +48,6 @@
     "@types/ltx": "^2.6.2",
     "@types/mocha": "^2.2.44",
     "expect": "^21.2.1",
-    "ltx": "^2.7.1",
     "mocha": "^4.0.1",
     "ts-node": "^3.3.0",
     "typescript": "^2.5.3"
