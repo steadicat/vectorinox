@@ -1,6 +1,6 @@
-import {expect, describe, formatNumber} from '../utils';
+import {expect, describe} from '../utils';
 import {parseD} from '../parse';
-import {serializeD} from '../serialize';
+import {serializeD, formatNumber} from '../serialize';
 
 type Vector = [number, number, number];
 type Matrix = [number, number, number, number, number, number, number, number, number];
@@ -27,14 +27,39 @@ function multiplyVector(a: Matrix, v: Vector): Vector {
   ];
 }
 
+function transformX(matrix: Matrix, x: number) {
+  const [nx] = multiplyVector(matrix, [x, 0, 1]);
+  return nx;
+}
+
+function transformY(matrix: Matrix, y: number) {
+  const [, ny] = multiplyVector(matrix, [0, y, 1]);
+  return ny;
+}
+
+function transformXY(matrix: Matrix, x: number, y: number) {
+  return multiplyVector(matrix, [x, y, 1]);
+}
+
+function transformDX(matrix: Matrix, dx: number) {
+  const [x0] = multiplyVector(matrix, [0, 0, 1]);
+  const [x1] = multiplyVector(matrix, [dx, 0, 1]);
+  return x1 - x0;
+}
+function transformDY(matrix: Matrix, dy: number) {
+  const [, y0] = multiplyVector(matrix, [0, 0, 1]);
+  const [, y1] = multiplyVector(matrix, [0, dy, 1]);
+  return y1 - y0;
+}
+
 function parseTransform(transform: string): [Matrix, string] {
   let matrix: Matrix = [1, 0, 0, 0, 1, 0, 0, 0, 1];
   let match;
-  const re = /(\w+)\(([-0-9e.]+\s*(,\s*[-0-9e.]+)*)\)/g;
+  const re = /(\w+)\(([-0-9e.]+\s*([,\s]\s*[-0-9e.]+)*)\)/g;
   const remainingTransforms = [];
   while ((match = re.exec(transform))) {
     const [, op, paramsString] = match;
-    const params = paramsString.split(',').map(parseFloat);
+    const params = paramsString.split(/[,\s]+/).map(parseFloat);
     let m: Matrix;
     switch (op) {
       case 'translate':
@@ -64,31 +89,86 @@ function parseTransform(transform: string): [Matrix, string] {
 function applyMatrixToD(matrix: Matrix, d: string): string {
   const segments = parseD(d);
   for (let segment of segments) {
-    switch (segment.type) {
+    switch (segment.code) {
       case 'M':
-      case 'm':
       case 'L':
+        const [mx, my] = transformXY(matrix, segment.end.x, segment.end.y);
+        segment.end.x = mx;
+        segment.end.y = my;
+        break;
+      case 'm':
       case 'l':
-        const [nx, ny] = multiplyVector(matrix, [segment.x, segment.y, 1]);
-        segment.x = nx;
-        segment.y = ny;
+        segment.end.x = transformDX(matrix, segment.end.x);
+        segment.end.y = transformDY(matrix, segment.end.y);
+        break;
+      case 'H':
+        segment.value = transformX(matrix, segment.value);
+        break;
+      case 'h':
+        segment.value = transformDX(matrix, segment.value);
+        break;
+      case 'V':
+        segment.value = transformY(matrix, segment.value);
+        break;
+      case 'v':
+        segment.value = transformDY(matrix, segment.value);
         break;
       case 'C':
+        const [cp1x, cp1y] = transformXY(matrix, segment.cp1.x, segment.cp1.y);
+        const [cp2x, cp2y] = transformXY(matrix, segment.cp2.x, segment.cp2.y);
+        const [endx, endy] = transformXY(matrix, segment.end.x, segment.end.y);
+        segment.cp1.x = cp1x;
+        segment.cp1.y = cp1y;
+        segment.cp2.x = cp2x;
+        segment.cp2.y = cp2y;
+        segment.end.x = endx;
+        segment.end.y = endy;
+        break;
       case 'c':
-        const [c1x, c1y] = multiplyVector(matrix, [segment.c1x, segment.c1y, 1]);
-        const [c2x, c2y] = multiplyVector(matrix, [segment.c2x, segment.c2y, 1]);
-        const [cx, cy] = multiplyVector(matrix, [segment.x, segment.y, 1]);
-        segment.c1x = c1x;
-        segment.c1y = c1y;
-        segment.c2x = c2x;
-        segment.c2y = c2y;
-        segment.x = cx;
-        segment.y = cy;
+        segment.cp1.x = transformDX(matrix, segment.cp1.x);
+        segment.cp1.y = transformDY(matrix, segment.cp1.y);
+        segment.cp2.x = transformDX(matrix, segment.cp2.x);
+        segment.cp2.y = transformDY(matrix, segment.cp2.x);
+        segment.end.x = transformDX(matrix, segment.end.x);
+        segment.end.y = transformDY(matrix, segment.end.y);
+        break;
+      case 'S':
+        const [cpx, cpy] = transformXY(matrix, segment.cp.x, segment.cp.y);
+        const [sendx, sendy] = transformXY(matrix, segment.end.x, segment.end.y);
+        segment.cp.x = cpx;
+        segment.cp.y = cpy;
+        segment.end.x = sendx;
+        segment.end.y = sendy;
+        break;
+      case 's':
+        segment.cp.x = transformDX(matrix, segment.cp.x);
+        segment.cp.y = transformDY(matrix, segment.cp.y);
+        segment.end.x = transformDX(matrix, segment.cp.x);
+        segment.end.y = transformDY(matrix, segment.cp.y);
+        break;
+      case 'A':
+        const [aendx, aendy] = transformXY(matrix, segment.end.x, segment.end.y);
+        segment.end.x = aendx;
+        segment.end.y = aendy;
+        segment.radii.x = transformDX(matrix, segment.radii.x);
+        segment.radii.y = transformDY(matrix, segment.radii.y);
+        if (hasRotation(matrix)) {
+          console.warn(`Rotating of arc path segments is not yet implemented: ${d}`);
+        }
+        break;
+      case 'a':
+        segment.end.x = transformDX(matrix, segment.end.x);
+        segment.end.y = transformDY(matrix, segment.end.y);
+        segment.radii.x = transformDX(matrix, segment.radii.x);
+        segment.radii.y = transformDY(matrix, segment.radii.y);
+        if (hasRotation(matrix)) {
+          console.warn(`Rotating of arc path segments is not yet implemented: ${d}`);
+        }
         break;
       case 'Z':
         break;
       default:
-        console.warn(`Segment transform not implemented: ${segment.type}`);
+        console.warn(`Segment transform not implemented: ${segment.code}`);
     }
   }
   return serializeD(segments);
@@ -109,27 +189,19 @@ function applyMatrixToPoints(matrix: Matrix, points: string): string {
 }
 
 function applyMatrixToX(matrix: Matrix, x: string): string {
-  const vector: Vector = [parseFloat(x), 0, 1];
-  const [nx] = multiplyVector(matrix, vector);
-  return formatNumber(nx);
+  return formatNumber(transformX(matrix, parseFloat(x)));
 }
 
 function applyMatrixToY(matrix: Matrix, y: string): string {
-  const vector: Vector = [0, parseFloat(y), 1];
-  const [, ny] = multiplyVector(matrix, vector);
-  return formatNumber(ny);
+  return formatNumber(transformY(matrix, parseFloat(y)));
 }
 
 function applyMatrixToWidth(matrix: Matrix, width: string): string {
-  const [cx] = multiplyVector(matrix, [0, 0, 1]);
-  const [dx] = multiplyVector(matrix, [parseFloat(width), 0, 1]);
-  return formatNumber(dx - cx);
+  return formatNumber(transformDX(matrix, parseFloat(width)));
 }
 
 function applyMatrixToHeight(matrix: Matrix, height: string): string {
-  const [, cy] = multiplyVector(matrix, [0, 0, 1]);
-  const [, dy] = multiplyVector(matrix, [0, parseFloat(height), 1]);
-  return formatNumber(dy - cy);
+  return formatNumber(transformDY(matrix, parseFloat(height)));
 }
 
 function applyMatrixToR(matrix: Matrix, r: string): string {

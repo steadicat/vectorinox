@@ -14,35 +14,6 @@ declare global {
   }
 
   type Attributes = {[name: string]: string | number | InheritedProp | SplicedProp};
-
-  type Segment =
-    | {
-        type: 'M' | 'm' | 'L' | 'l';
-        x: number;
-        y: number;
-      }
-    | {
-        type: 'C' | 'c';
-        c1x: number;
-        c1y: number;
-        c2x: number;
-        c2y: number;
-        x: number;
-        y: number;
-      }
-    | {
-        type: 'A';
-        rx: number;
-        ry: number;
-        xAxisRotate: number;
-        largeArcFlag: number;
-        sweepFlag: number;
-        x: number;
-        y: number;
-      }
-    | {
-        type: 'Z';
-      };
 }
 
 export function cleanup(el: Element): Element {
@@ -61,7 +32,3 @@ export const describe =
     desc: string,
     f: () => void,
   ) => void) || function() {};
-
-export function formatNumber(n: number, precision = 3): string {
-  return parseFloat(n.toFixed(precision)).toString();
-}

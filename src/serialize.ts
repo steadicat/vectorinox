@@ -1,28 +1,54 @@
 import {InheritedProp, SplicedProp} from './jsx';
+import {Command} from 'd-path-parser';
+
+export function formatNumber(n: number, precision = 3): string {
+  n = parseFloat(n.toFixed(precision));
+  if (isNaN(n)) console.warn('Found invalid number: ', n);
+  return n.toString();
+}
 
 function float(n: number): string {
-  return `${parseFloat(n.toFixed(3))}`;
+  return formatNumber(n);
 }
 
 function floatPair(x: number, y: number): string {
   return `${float(x)},${float(y)}`;
 }
 
-export function serializeD(segments: Segment[]): string {
+function boolean(x: boolean): string {
+  return x ? '1' : '0';
+}
+
+export function serializeD(segments: Command[]): string {
   return segments
     .map(segment => {
-      switch (segment.type) {
+      switch (segment.code) {
         case 'M':
         case 'm':
         case 'L':
         case 'l':
-          return `${segment.type}${float(segment.x)},${parseFloat(float(segment.y))}`;
+          return `${segment.code}${floatPair(segment.end.x, segment.end.y)}`;
+        case 'H':
+        case 'h':
+        case 'V':
+        case 'v':
+          return `${segment.code}${float(segment.value)}`;
         case 'C':
         case 'c':
-          const {type, c1x, c1y, c2x, c2y, x, y} = segment;
-          return `${type}${floatPair(c1x, c1y)} ${floatPair(c2x, c2y)} ${floatPair(x, y)}`;
+          const {code, cp1, cp2, end} = segment;
+          return `${code}${floatPair(cp1.x, cp1.y)} ${floatPair(cp2.x, cp2.y)} ${floatPair(end.x, end.y)}`;
+        case 'S':
+        case 's':
+          const {code: codes, cp: cps, end: ends} = segment;
+          return `${codes}${floatPair(cps.x, cps.y)} ${floatPair(ends.x, ends.y)}`;
+        case 'A':
+        case 'a':
+          const {code: codea, radii, rotation, large, clockwise, end: enda} = segment;
+          return `${codea}${floatPair(radii.x, radii.y)} ${float(rotation)} ${boolean(large)} ${boolean(
+            clockwise,
+          )} ${floatPair(enda.x, enda.y)}`;
         default:
-          return `${segment.type}`;
+          return `${segment.code}`;
       }
     })
     .join(' ');
