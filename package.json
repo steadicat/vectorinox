@@ -1,7 +1,8 @@
 {
   "name": "vectorinox",
   "version": "0.0.2",
-  "description": "Cleans up and compresses SVG files exported from Sketch (and other design tools). Optionally formats SVG for inlining into React projects.",
+  "description":
+    "Cleans up and compresses SVG files exported from Sketch (and other design tools). Optionally formats SVG for inlining into React projects.",
   "author": "Stefano J. Attardi (http://github.com/steadicat)",
   "homepage": "https://github.com/steadicat/vectorinox",
   "repository": {
@@ -34,16 +35,17 @@
     "build": "./node_modules/.bin/tsc",
     "prepublish": "npm run build",
     "test": "./node_modules/.bin/mocha -r ts-node/register test/**/*.ts",
-    "test:watch": "./node_modules/.bin/mocha --watch --watch-extensions ts -r ts-node/register test/**/*.ts src/plugins/*.ts"
+    "test:watch":
+      "./node_modules/.bin/mocha --watch --watch-extensions ts -r ts-node/register test/**/*.ts src/plugins/*.ts"
   },
   "dependencies": {
+    "chai": "^4.1.2",
     "d-path-parser": "^1.0.0"
   },
   "devDependencies": {
     "@types/chai": "^4.0.4",
     "@types/ltx": "^2.6.2",
     "@types/mocha": "^2.2.44",
-    "chai": "^4.1.2",
     "expect": "^21.2.1",
     "ltx": "^2.7.1",
     "mocha": "^4.0.1",
