@@ -1,6 +1,6 @@
 {
   "name": "vectorinox",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Cleans up and compresses SVG files exported from Sketch (and other design tools). Optionally formats SVG for inlining into React projects.",
   "author": "Stefano J. Attardi (http://github.com/steadicat)",
   "homepage": "https://github.com/steadicat/vectorinox",
