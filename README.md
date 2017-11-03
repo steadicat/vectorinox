@@ -1,7 +1,7 @@
 Vectorinox
 ==========
 
-Cleans up and compresses SVG files exported from Sketch (and other design tools). Optionally formats SVG for inlining into React projects. Work-in-progress.
+Cleans up and compresses SVG files exported from Sketch (and other design tools). Optionally formats SVG as JSX for inlining into React projects.
 
 Install
 -------
@@ -10,8 +10,8 @@ Install
 > npm install -g vectorinox
 ```
 
-Usage
------
+Example Usage
+--------------
 
 To optimize an SVG file in place:
 
@@ -23,6 +23,43 @@ To output the optimized SVG to stdout:
 
 ```bash
 > vectorinox --stdout vector-file-to-optimize.svg
+```
+
+Full Usage
+----------
+```
+vectorinox [options] svgfile ... svgfile
+
+Output:
+  --stdout, -o  Print results to stdout instead of writing to file                   [boolean] [default: false]
+
+JSX Options:
+  --jsx               Convert to JSX                                                 [boolean] [default: false]
+  --jsx-extension     File extension to use when converting to JSX (ignored with --stdout)      [default: "js"]
+  --jsx-tag           The name of the top level tag to use when converting to JSX              [default: "svg"]
+  --jsx-prop          Add a prop and value to add to the top level tag, in the format prop=value (can be used
+                      multiple times)                                                             [default: []]
+  --jsx-inherit-prop  A prop name to pass through to the root tag, i.e. prop={prop} (can be used multiple
+                      times)                                                                      [default: []]
+  --jsx-splice-prop   A prop name to splice into the root tag, i.e. {...prop} (can be used multiple times)
+                                                                                                  [default: []]
+  --jsx-template      A file containing the template to use when converting to a JSX component
+                                                                                   [default: ".svgTemplate.js"]
+
+Options:
+  --version  Show version number                                                                      [boolean]
+  --help     Show help                                                                                [boolean]
+
+Examples:
+  vectorinox image.svg                                     Optimize an image in place
+  vectorinox --stdout image.svg | pbcopy                   Optimize an image and copy the SVG code to the
+                                                           clipboard
+  vectorinox --jsx image.svg                               Optimize a file and convert it to a React module
+                                                           with a .js extension using the default template
+  vectorinox --jsx image.svg --jsx-template                Optimize a file and convert it to a React module
+  mySvgTemplate.js                                         with a .js extension using the provided template
+  vectorinox --jsx --jsx-extension tsx image.svg           Optimize a file and convert it to a React module
+                                                           with a .tsx extension
 ```
 
 React/JSX
@@ -105,3 +142,9 @@ Available placeholders are:
 - `%NAME%`: a CamelCased version of the SVG file name.
 - `%PROPS%`: an object destructuring of props, inferred from the `--jsxInheritProp` and `--jsxSpliceProp` options provided. For example, with `--jsxInheritProp color --jsxInheritProp fill --jsxSpliceProp props`, this token gets replaced with `{color, fill, ...props}`.
 - `%SVG%`: the actual converted SVG markup. Put this on its own line with space in front of it to indent the code accordingly.
+
+
+Known Issues
+------------
+
+Not all of SVG is currently supported. Specifically masks and transforms on paths that use arc segments are known to be broken.
